@@ -1,0 +1,109 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Text;
+using CSharpShellCore;
+using UnityMIDIMachineTest;
+
+namespace UnityMIDIMachineTest
+{
+    public class Program
+    {	
+        public static void Main(string[] args)
+        {	
+			BitArray startState = new BitArray(new[] { false, false, false, true });
+			BitArray previousState = new BitArray(startState);
+            BitArray currentState = new BitArray(startState);
+            BitArray newState = new BitArray(startState);
+            Operator[][] stepOperations =
+            {
+                new Operator[] { Operator.NotFirst, Operator.First, Operator.First },
+                new Operator[] { Operator.Xor, Operator.First, Operator.First },
+                new Operator[] { Operator.And, Operator.Xor, Operator.First },
+                new Operator[] { Operator.And, Operator.And, Operator.Xor }
+            };
+            HashSet<int> history = new HashSet<int>();
+            int stateValue = 0;
+            bool tempBit;
+            bool hit = false;
+
+            while (!hit)
+            {
+                Console.Write("\n: ");
+                foreach (bool bit in previousState)
+                {
+                    Console.Write(bit ? "#" : " ");
+                }
+
+                int j = 0;
+                foreach (bool outputBit in currentState)
+                {
+                    tempBit = previousState[0];
+                    int k = 1;
+                    foreach (Operator oper in stepOperations[j])
+                    {
+                        bool inputBit = previousState[k];
+                        tempBit = oper.Apply(tempBit, inputBit);
+                        k++;
+                    }
+                    newState[j] = tempBit;
+                    j++;
+                }
+                currentState = new BitArray(newState);
+				stateValue = 0;
+                for (int i = 0; i < previousState.Count; i++)
+                {
+  				  if (previousState[i])
+ 				   {
+ 				       stateValue |= (1 << i);
+				    }
+				}
+				Console.Write(stateValue);
+                if (history.Contains(stateValue))
+				{	
+ 				   break;
+				}
+
+				history.Add(stateValue);
+                previousState = new BitArray(currentState);
+            }
+        }
+    }
+
+    public class Operator
+    {
+        private int _Value;
+
+        public static readonly Operator False = 0;
+        public static readonly Operator NOr = 1;
+        public static readonly Operator NOrNot = 2;
+        public static readonly Operator NotFirst = 3;
+        public static readonly Operator AndNot = 4;
+        public static readonly Operator NotSecond = 5;
+        public static readonly Operator Xor = 6;
+        public static readonly Operator NAnd = 7;
+        public static readonly Operator And = 8;
+        public static readonly Operator NXor = 9;
+        public static readonly Operator Second = 10;
+        public static readonly Operator NAndNot = 11;
+        public static readonly Operator First = 12;
+        public static readonly Operator OrNot = 13;
+        public static readonly Operator Or = 14;
+        public static readonly Operator True = 15;
+
+        public static implicit operator Operator(int value)
+        {
+            return new Operator { _Value = value };
+        }
+
+        public static implicit operator int(Operator value)
+        {
+            return value._Value;
+        }
+
+        public bool Apply(bool input1, bool input2)
+        {
+            return (_Value & (1 << (input1 ? (input2 ? 3 : 2) : (input2 ? 1 : 0)))) != 0;
+        }
+    }
+}
